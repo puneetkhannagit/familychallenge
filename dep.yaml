@@ -1,0 +1,4 @@
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+backend   1/1     1            1           144m
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE    CONTAINERS   IMAGES                                                                  SELECTOR
+backend   1/1     1            1           144m   backend      290767212089.dkr.ecr.eu-north-1.amazonaws.com/microservices-backend:8   app=backend
