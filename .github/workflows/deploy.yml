@@ -36,7 +36,7 @@ jobs:
         docker buildx create --use || true
         docker buildx build \
           --platform linux/amd64 \
-          -t $ECR_REPO:${{ github.sha }} \
+          -t $ECR_REPO:${{ github.run_number }} \
           --push .
 
     - name: Configure kubectl
@@ -46,7 +46,7 @@ jobs:
     - name: Deploy
       run: |
         kubectl set image deployment/backend \
-        backend=$ECR_REPO:${{ github.sha }}
+        backend=$ECR_REPO:${{ github.run_number }}
 
     - name: Verify
       run: |
