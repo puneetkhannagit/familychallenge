@@ -16,38 +16,52 @@ jobs:
 
     steps:
 
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v2
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-    - name: Login to ECR
-      run: |
-        aws ecr get-login-password --region $AWS_REGION | \
-        docker login --username AWS --password-stdin $ECR_REPO
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+          docker login --username AWS --password-stdin $ECR_REPO
 
-    - name: Build & Push
-      run: |
-        docker buildx create --use || true
-        docker buildx build \
-          --platform linux/amd64 \
-          -t $ECR_REPO:${{ github.run_number }} \
-          --push .
+      - name: Build & Push Image
+        run: |
+          docker buildx create --use || true
+          docker buildx build \
+            --platform linux/amd64 \
+            -t $ECR_REPO:${{ github.run_number }} \
+            --push .
 
-    - name: Configure kubectl
-      run: |
-        aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
 
-    - name: Deploy
-      run: |
-        kubectl set image deployment/backend \
-        backend=$ECR_REPO:${{ github.run_number }}
+      # 🔐 Create / Update Secret
+      - name: Create Secret
+        run: |
+          kubectl create secret generic auth-secrets \
+            --from-literal=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            --from-literal=GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            --from-literal=JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
-    - name: Verify
-      run: |
-        kubectl rollout status deployment/backend
+      # 🔥 Inject image tag into YAML
+      - name: Inject image tag
+        run: |
+          sed -i 's|IMAGE_TAG|${{ github.run_number }}|g' eks-all.yaml
+
+      # 🚀 Apply ALL resources
+      - name: Deploy
+        run: |
+          kubectl apply -f eks-all.yaml
+
+      - name: Verify
+        run: |
+          kubectl rollout status deployment/backend
