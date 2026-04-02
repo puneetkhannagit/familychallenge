@@ -5,3 +5,5 @@ The leader gets goodies from the group of friends/parents.
 
 The kids ask to spin the project - when they need to challange each other . Earlier i was pushing the images to ECR form aws cli , decideded to move to github actions to avoid the manual effort and make this public.
 Plan to move it to lambda to avoid this manual effort.Feel free to contribute and add features( if you think anything can be done and is a good feature - raise an issue )
+
+Still processing some layers to push to github as they are raw and need cleaening.. before i commit here..
