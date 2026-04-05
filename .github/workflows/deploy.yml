@@ -62,3 +62,17 @@ jobs:
     - name: Verify Rollout
       run: |
         kubectl rollout status deployment/backend
+
+    - name: Trigger Test Repo
+      run: |
+        curl -X POST https://api.github.com/repos/puneetkhannagit/scalaablecicdineks/actions/workflows/ci.yml/dispatches \
+          -H "Authorization: token ${{ secrets.TESTTOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -d '{
+            "ref": "main",
+            "inputs": {
+              "env": "local",
+              "groups": "release1",
+              "tag": "post-deploy"
+            }
+          }'
