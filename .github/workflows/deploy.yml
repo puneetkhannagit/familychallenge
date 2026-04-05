@@ -63,6 +63,33 @@ jobs:
       run: |
         kubectl rollout status deployment/backend
 
+    - name: Get service external URL
+      id: get_url
+      run: |
+        echo "Fetching backend service external hostname/IP after successful rollout..."
+        EXTERNAL_HOSTNAME=$(kubectl get svc backend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+        EXTERNAL_IP=$(kubectl get svc backend -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+        if [ -n "$EXTERNAL_HOSTNAME" ]; then
+          EXTERNAL_URL="http://$EXTERNAL_HOSTNAME"
+        elif [ -n "$EXTERNAL_IP" ]; then
+          EXTERNAL_URL="http://$EXTERNAL_IP"
+        else
+          echo "No external hostname/ip found for service 'backend' - listing services for debugging:";
+          kubectl get svc -o wide
+          NODEPORT=$(kubectl get svc backend -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || true)
+          if [ -n "$NODEPORT" ]; then
+            NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' 2>/dev/null || true)
+            if [ -z "$NODE_IP" ]; then
+              NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}' 2>/dev/null || true)
+            fi
+            if [ -n "$NODE_IP" ]; then
+              EXTERNAL_URL="http://$NODE_IP:$NODEPORT"
+            fi
+          fi
+        fi
+        echo "External URL: $EXTERNAL_URL"
+        echo "EXTERNAL_URL=$EXTERNAL_URL" >> $GITHUB_OUTPUT
+
     - name: Trigger Test Repo
       run: |
         curl -X POST https://api.github.com/repos/puneetkhannagit/scalaablecicdineks/actions/workflows/ci.yml/dispatches \
@@ -73,6 +100,7 @@ jobs:
             "inputs": {
               "env": "local",
               "groups": "release1",
-              "tag": "post-deploy"
+              "tag": "post-deploy",
+              "externalUrl": "'"${{ steps.get_url.outputs.EXTERNAL_URL }}"'"
             }
           }'
