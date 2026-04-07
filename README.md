@@ -13,3 +13,6 @@ For the local setup just use docker compose build --up . it should give you basi
 will clean more and add later.. 
 
 if you are deplying on local kubernetes you can make use of yamls under k8s/ but some yamls are for eks config .. they should work fine for local kubernetes( docker desktop kub) , if it does nto ..do let me know 
+
+
+Deployment notes : https://medium.com/@connect2pkhanna
